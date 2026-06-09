@@ -9,6 +9,7 @@ DB_PATH = Path(__file__).parent.parent / "data" / "media_buying.db"
 def get_conn():
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     try:
         yield conn
         conn.commit()
@@ -199,10 +200,15 @@ def get_performance_snapshots(deal_id):
 def get_latest_snapshots(deal_id):
     with get_conn() as conn:
         return [dict(r) for r in conn.execute(
-            """SELECT * FROM performance_snapshots
-               WHERE id IN (
-                   SELECT MAX(id) FROM performance_snapshots
-                   WHERE deal_id = ? GROUP BY platform
-               )""",
-            (deal_id,),
+            """SELECT ps.* FROM performance_snapshots ps
+               INNER JOIN (
+                   SELECT platform, MAX(synced_at) AS latest, MAX(id) AS latest_id
+                   FROM performance_snapshots
+                   WHERE deal_id = ?
+                   GROUP BY platform
+               ) latest_snap ON ps.platform = latest_snap.platform
+                   AND ps.synced_at = latest_snap.latest
+                   AND ps.id = latest_snap.latest_id
+               WHERE ps.deal_id = ?""",
+            (deal_id, deal_id),
         )]
