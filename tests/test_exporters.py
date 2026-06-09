@@ -1,6 +1,4 @@
 # tests/test_exporters.py
-import json
-import pytest
 from io import BytesIO
 from docx import Document
 
@@ -35,7 +33,12 @@ def _load_docx(raw_bytes):
 
 
 def _full_text(doc):
-    return "\n".join(p.text for p in doc.paragraphs)
+    parts = [p.text for p in doc.paragraphs]
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                parts.append(cell.text)
+    return "\n".join(parts)
 
 
 def test_generate_digital_brief_returns_bytes():

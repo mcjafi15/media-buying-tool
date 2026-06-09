@@ -1,7 +1,6 @@
 # core/exporters.py
 from io import BytesIO
 from docx import Document
-from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
@@ -67,7 +66,7 @@ def generate_print_brief(deal: dict, plan: dict) -> bytes:
     doc = _new_doc(f"Print Media Brief — {deal['name']}")
     _deal_overview(doc, deal)
 
-    print_data = plan["channel_mix"]["print"]
+    print_data = plan["channel_mix"].get("print", {"pct": 0, "usd": 0.0, "notes": ""})
     doc.add_heading("Print Budget & Placements", 1)
     _bold_para(doc, "Total Print Budget", f"${print_data['usd']:,.0f} ({print_data['pct']}% of total)")
     _bold_para(doc, "Recommended Publications", print_data.get("notes", ""))
@@ -83,10 +82,12 @@ def generate_ooh_brief(deal: dict, plan: dict) -> bytes:
     doc = _new_doc(f"Out-of-Home Media Brief — {deal['name']}")
     _deal_overview(doc, deal)
 
-    ooh = plan["channel_mix"]["ooh"]
+    ooh = plan["channel_mix"].get("ooh", {"pct": 0, "usd": 0.0, "notes": ""})
     doc.add_heading("OOH Budget & Placements", 1)
     _bold_para(doc, "Total OOH Budget", f"${ooh['usd']:,.0f} ({ooh['pct']}% of total)")
     _bold_para(doc, "Placement Guidance", ooh.get("notes", ""))
+    doc.add_heading("Flight Schedule", 1)
+    doc.add_paragraph(plan.get("flight_schedule", ""))
     doc.add_heading("Format Requirements", 1)
     doc.add_paragraph("Preferred formats: bulletin (14x48), poster (10.5x36), junior poster (6x12). "
                       "Digital OOH accepted. Provide production specs and posting dates.")
@@ -104,7 +105,9 @@ def generate_rfp_template(deal: dict, plan: dict, vendor_type: str = "print") ->
     )
     _deal_overview(doc, deal)
 
-    budget_key = "print" if vendor_type == "print" else "ooh"
+    if vendor_type not in ("print", "ooh"):
+        raise ValueError(f"vendor_type must be 'print' or 'ooh', got: {vendor_type!r}")
+    budget_key = vendor_type
     channel_budget = plan["channel_mix"].get(budget_key, {}).get("usd", 0)
     doc.add_heading("Budget", 1)
     _bold_para(doc, "Available Budget", f"${channel_budget:,.0f}")
