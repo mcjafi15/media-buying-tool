@@ -49,3 +49,37 @@ def test_fetch_campaign_performance_filters_by_deal_name():
 
     assert len(results) == 1
     assert results[0]["impressions"] == 5000
+
+
+def test_get_aggregated_metrics_empty_returns_zeros():
+    with patch("core.google_ads._get_client") as mock_get_client:
+        mock_get_client.return_value.get_service.return_value.search.return_value = []
+        from core.google_ads import get_aggregated_metrics
+        result = get_aggregated_metrics("123", "Nonexistent Deal")
+    assert result == {"impressions": 0, "clicks": 0, "spend": 0.0, "conversions": 0}
+
+
+def test_get_aggregated_metrics_sums_all_rows():
+    mock_row1 = MagicMock()
+    mock_row1.campaign.name = "Test Deal — Search"
+    mock_row1.metrics.impressions = 5000
+    mock_row1.metrics.clicks = 200
+    mock_row1.metrics.cost_micros = 2000000000
+    mock_row1.metrics.conversions = 5.0
+
+    mock_row2 = MagicMock()
+    mock_row2.campaign.name = "Test Deal — Display"
+    mock_row2.metrics.impressions = 3000
+    mock_row2.metrics.clicks = 100
+    mock_row2.metrics.cost_micros = 1000000000
+    mock_row2.metrics.conversions = 3.0
+
+    with patch("core.google_ads._get_client") as mock_get_client:
+        mock_get_client.return_value.get_service.return_value.search.return_value = [mock_row1, mock_row2]
+        from core.google_ads import get_aggregated_metrics
+        result = get_aggregated_metrics("123", "Test Deal")
+
+    assert result["impressions"] == 8000
+    assert result["clicks"] == 300
+    assert abs(result["spend"] - 3000.0) < 0.01
+    assert result["conversions"] == 8

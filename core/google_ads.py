@@ -2,20 +2,26 @@
 import os
 from google.ads.googleads.client import GoogleAdsClient
 
+_client_instance = None
+
 
 def _get_client():
-    return GoogleAdsClient.load_from_dict({
-        "developer_token": os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"],
-        "client_id": os.environ["GOOGLE_ADS_CLIENT_ID"],
-        "client_secret": os.environ["GOOGLE_ADS_CLIENT_SECRET"],
-        "refresh_token": os.environ["GOOGLE_ADS_REFRESH_TOKEN"],
-        "login_customer_id": os.environ["GOOGLE_ADS_LOGIN_CUSTOMER_ID"],
-        "use_proto_plus": True,
-    })
+    global _client_instance
+    if _client_instance is None:
+        _client_instance = GoogleAdsClient.load_from_dict({
+            "developer_token": os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"],
+            "client_id": os.environ["GOOGLE_ADS_CLIENT_ID"],
+            "client_secret": os.environ["GOOGLE_ADS_CLIENT_SECRET"],
+            "refresh_token": os.environ["GOOGLE_ADS_REFRESH_TOKEN"],
+            "login_customer_id": os.environ["GOOGLE_ADS_LOGIN_CUSTOMER_ID"],
+            "use_proto_plus": True,
+        })
+    return _client_instance
 
 
 def fetch_campaign_performance(customer_id: str, deal_name: str) -> list[dict]:
     """Returns aggregated performance for all campaigns whose name contains deal_name."""
+    customer_id = customer_id.replace("-", "")
     client = _get_client()
     ga_service = client.get_service("GoogleAdsService")
     query = """
@@ -27,7 +33,7 @@ def fetch_campaign_performance(customer_id: str, deal_name: str) -> list[dict]:
             metrics.conversions
         FROM campaign
         WHERE segments.date DURING ALL_TIME
-        AND campaign.status = 'ENABLED'
+        AND campaign.status IN ('ENABLED', 'PAUSED')
     """
     response = ga_service.search(customer_id=customer_id, query=query)
 
@@ -40,7 +46,7 @@ def fetch_campaign_performance(customer_id: str, deal_name: str) -> list[dict]:
             "impressions": row.metrics.impressions,
             "clicks": row.metrics.clicks,
             "spend": row.metrics.cost_micros / 1_000_000,
-            "conversions": int(row.metrics.conversions),
+            "conversions": round(row.metrics.conversions),
         })
     return results
 
