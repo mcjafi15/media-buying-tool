@@ -11,7 +11,7 @@ def test_fetch_campaign_performance_returns_list():
     mock_row.metrics.clicks = 500
     mock_row.metrics.cost_micros = 4500000000  # $4,500 in micros
     mock_row.metrics.conversions = 12.0
-    mock_client.search.return_value = [mock_row]
+    mock_client.get_service.return_value.search.return_value = [mock_row]
 
     with patch("core.google_ads._get_client", return_value=mock_client):
         from core.google_ads import fetch_campaign_performance
@@ -41,7 +41,7 @@ def test_fetch_campaign_performance_filters_by_deal_name():
     row_no_match.metrics.cost_micros = 1000000000
     row_no_match.metrics.conversions = 2.0
 
-    mock_client.search.return_value = [row_match, row_no_match]
+    mock_client.get_service.return_value.search.return_value = [row_match, row_no_match]
 
     with patch("core.google_ads._get_client", return_value=mock_client):
         from core.google_ads import fetch_campaign_performance

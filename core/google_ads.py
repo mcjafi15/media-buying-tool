@@ -17,7 +17,7 @@ def _get_client():
 def fetch_campaign_performance(customer_id: str, deal_name: str) -> list[dict]:
     """Returns aggregated performance for all campaigns whose name contains deal_name."""
     client = _get_client()
-
+    ga_service = client.get_service("GoogleAdsService")
     query = """
         SELECT
             campaign.name,
@@ -29,8 +29,7 @@ def fetch_campaign_performance(customer_id: str, deal_name: str) -> list[dict]:
         WHERE segments.date DURING ALL_TIME
         AND campaign.status = 'ENABLED'
     """
-
-    response = client.search(customer_id=customer_id, query=query)
+    response = ga_service.search(customer_id=customer_id, query=query)
 
     results = []
     for row in response:
