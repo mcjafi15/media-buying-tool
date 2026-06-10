@@ -239,7 +239,7 @@ def generate_performance_report(deal: dict, snapshots: list, placements: list) -
     story.append(t)
     story.append(Spacer(1, 0.2 * inch))
 
-    manual = [p for p in placements if p.get("channel") in ("print", "ooh")]
+    manual = [p for p in placements if not p.get("is_digital", False)]
     if manual:
         story.append(Paragraph("Print & OOH Placements", styles["Heading2"]))
         p_data = [["Vendor", "Channel", "Contracted", "Actual Spend", "Status"]]

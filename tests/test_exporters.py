@@ -105,3 +105,10 @@ def test_generate_performance_report_returns_pdf_bytes():
     result = generate_performance_report(DEAL, snapshots, placements)
     assert isinstance(result, bytes)
     assert result[:4] == b"%PDF"
+
+
+def test_generate_performance_report_empty_data_returns_valid_pdf():
+    from core.exporters import generate_performance_report
+    result = generate_performance_report(DEAL, [], [])
+    assert isinstance(result, bytes)
+    assert result[:4] == b"%PDF"

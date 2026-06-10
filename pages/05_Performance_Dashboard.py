@@ -43,8 +43,8 @@ with col_refresh:
 
         try:
             from core.linkedin_ads import get_aggregated_metrics as li_metrics
-            l = li_metrics(os.environ.get("LINKEDIN_AD_ACCOUNT_ID", ""), deal["name"])
-            save_performance_snapshot(deal_id, "linkedin", l["impressions"], l["clicks"], l["spend"], l["conversions"])
+            li = li_metrics(os.environ.get("LINKEDIN_AD_ACCOUNT_ID", ""), deal["name"])
+            save_performance_snapshot(deal_id, "linkedin", li["impressions"], li["clicks"], li["spend"], li["conversions"])
         except Exception as e:
             errors.append(f"LinkedIn: {e}")
 
@@ -107,7 +107,7 @@ with col_export:
         try:
             st.download_button(
                 "📥 Export Performance Report (PDF)",
-                data=generate_performance_report(deal, snapshots, placements),
+                data=generate_performance_report(deal, all_snaps, placements),
                 file_name=f"{deal['name']}_performance_report.pdf",
                 mime="application/pdf",
             )
