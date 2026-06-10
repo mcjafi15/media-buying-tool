@@ -18,7 +18,7 @@ def load_env_file():
     if not ENV_PATH.exists():
         return {}
     result = {}
-    for line in ENV_PATH.read_text().splitlines():
+    for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if "=" in line and not line.startswith("#"):
             k, _, v = line.partition("=")
@@ -26,9 +26,33 @@ def load_env_file():
     return result
 
 
+_MANAGED_KEYS = {
+    "ANTHROPIC_API_KEY", "GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CLIENT_ID",
+    "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REFRESH_TOKEN", "GOOGLE_ADS_LOGIN_CUSTOMER_ID",
+    "META_APP_ID", "META_APP_SECRET", "META_ACCESS_TOKEN", "META_AD_ACCOUNT_ID",
+    "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "LINKEDIN_ACCESS_TOKEN",
+    "LINKEDIN_AD_ACCOUNT_ID",
+}
+
+
 def save_env_file(values: dict):
-    lines = [f"{k}={v}" for k, v in values.items() if v]
-    ENV_PATH.write_text("\n".join(lines) + "\n")
+    import os as _os
+    existing: dict = {}
+    if ENV_PATH.exists():
+        for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if "=" in line and not line.startswith("#"):
+                k, _, v = line.partition("=")
+                existing[k.strip()] = v.strip()
+    existing.update({k: v for k, v in values.items() if v})
+    for key in _MANAGED_KEYS:
+        if key not in values or not values[key]:
+            existing.pop(key, None)
+    lines = [f"{k}={v}" for k, v in existing.items()]
+    content = "\n".join(lines) + "\n"
+    tmp = ENV_PATH.with_suffix(".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    _os.replace(tmp, ENV_PATH)
 
 
 current = load_env_file()
@@ -68,20 +92,23 @@ with st.form("settings_form"):
     saved = st.form_submit_button("Save Credentials", type="primary")
 
 if saved:
-    save_env_file({
-        "ANTHROPIC_API_KEY": anthropic_key,
-        "GOOGLE_ADS_DEVELOPER_TOKEN": g_dev_token,
-        "GOOGLE_ADS_CLIENT_ID": g_client_id,
-        "GOOGLE_ADS_CLIENT_SECRET": g_client_secret,
-        "GOOGLE_ADS_REFRESH_TOKEN": g_refresh,
-        "GOOGLE_ADS_LOGIN_CUSTOMER_ID": g_customer,
-        "META_APP_ID": meta_app_id,
-        "META_APP_SECRET": meta_app_secret,
-        "META_ACCESS_TOKEN": meta_token,
-        "META_AD_ACCOUNT_ID": meta_account,
-        "LINKEDIN_CLIENT_ID": li_client_id,
-        "LINKEDIN_CLIENT_SECRET": li_client_secret,
-        "LINKEDIN_ACCESS_TOKEN": li_token,
-        "LINKEDIN_AD_ACCOUNT_ID": li_account,
-    })
-    st.success("Saved to .env. Restart the app for new values to take effect.")
+    try:
+        save_env_file({
+            "ANTHROPIC_API_KEY": anthropic_key,
+            "GOOGLE_ADS_DEVELOPER_TOKEN": g_dev_token,
+            "GOOGLE_ADS_CLIENT_ID": g_client_id,
+            "GOOGLE_ADS_CLIENT_SECRET": g_client_secret,
+            "GOOGLE_ADS_REFRESH_TOKEN": g_refresh,
+            "GOOGLE_ADS_LOGIN_CUSTOMER_ID": g_customer,
+            "META_APP_ID": meta_app_id,
+            "META_APP_SECRET": meta_app_secret,
+            "META_ACCESS_TOKEN": meta_token,
+            "META_AD_ACCOUNT_ID": meta_account,
+            "LINKEDIN_CLIENT_ID": li_client_id,
+            "LINKEDIN_CLIENT_SECRET": li_client_secret,
+            "LINKEDIN_ACCESS_TOKEN": li_token,
+            "LINKEDIN_AD_ACCOUNT_ID": li_account,
+        })
+        st.success("Saved to .env. Restart the app for new values to take effect.")
+    except OSError as e:
+        st.error(f"Could not write .env file: {e}")
