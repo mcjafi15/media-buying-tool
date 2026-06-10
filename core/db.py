@@ -217,3 +217,7 @@ def get_latest_snapshots(deal_id):
                WHERE ps.deal_id = ?""",
             (deal_id, deal_id),
         )]
+
+
+# Auto-initialize schema on import so any page works without visiting the home page first
+init_db()
