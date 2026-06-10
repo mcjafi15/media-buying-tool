@@ -85,3 +85,27 @@ def test_get_aggregated_metrics_sums_rows():
     assert result["impressions"] == 60000
     assert result["clicks"] == 280
     assert abs(result["spend"] - 2300.0) < 0.01
+
+
+def test_fetch_meta_performance_counts_qualifying_conversions_only():
+    mock_account = MagicMock()
+    mock_campaign = MagicMock()
+    mock_campaign.__getitem__ = lambda self, k: {"name": "Test Deal — Meta"}[k]
+    mock_campaign.get_insights.return_value = MagicMock(data=[{
+        "spend": "1000.00",
+        "impressions": "25000",
+        "clicks": "120",
+        "actions": [
+            {"action_type": "lead", "value": "3"},
+            {"action_type": "link_click", "value": "120"},
+            {"action_type": "purchase", "value": "2"},
+        ],
+    }])
+    mock_account.get_campaigns.return_value = [mock_campaign]
+
+    with patch("core.meta_ads._get_account", return_value=mock_account):
+        from core.meta_ads import fetch_meta_performance
+        results = fetch_meta_performance(ad_account_id="act_123", deal_name="Test Deal")
+
+    assert len(results) == 1
+    assert results[0]["conversions"] == 5  # lead(3) + purchase(2), link_click excluded
