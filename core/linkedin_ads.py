@@ -7,7 +7,7 @@ _VERSION = "202406"
 
 
 def _get(path: str, params: dict = None):
-    token = os.environ["LINKEDIN_ACCESS_TOKEN"]
+    token = os.environ.get("LINKEDIN_ACCESS_TOKEN", "")
     headers = {
         "Authorization": f"Bearer {token}",
         "LinkedIn-Version": _VERSION,
@@ -44,7 +44,10 @@ def fetch_linkedin_performance(ad_account_id: str, deal_name: str) -> list[dict]
     for campaign in campaigns:
         if deal_name.lower() not in campaign.get("name", "").lower():
             continue
-        analytics = _get_analytics(campaign["id"])
+        campaign_id = campaign.get("id")
+        if campaign_id is None:
+            continue
+        analytics = _get_analytics(campaign_id)
         results.append({
             "campaign_name": campaign["name"],
             "impressions": analytics.get("impressions", 0),
@@ -61,6 +64,6 @@ def get_aggregated_metrics(ad_account_id: str, deal_name: str) -> dict:
     return {
         "impressions": sum(r["impressions"] for r in rows),
         "clicks": sum(r["clicks"] for r in rows),
-        "spend": sum(r["spend"] for r in rows),
+        "spend": float(sum(r["spend"] for r in rows)),
         "conversions": sum(r["conversions"] for r in rows),
     }

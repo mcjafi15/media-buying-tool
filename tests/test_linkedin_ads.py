@@ -89,3 +89,13 @@ def test_get_aggregated_metrics_sums_rows():
     assert result["clicks"] == 280
     assert abs(result["spend"] - 2300.0) < 0.01
     assert result["conversions"] == 8
+
+
+def test_http_error_propagates():
+    import requests as req
+    err_resp = MagicMock()
+    err_resp.raise_for_status.side_effect = req.HTTPError("403 Forbidden")
+    with patch("core.linkedin_ads._get", return_value=err_resp):
+        with pytest.raises(req.HTTPError):
+            from core.linkedin_ads import fetch_linkedin_performance
+            fetch_linkedin_performance("123", "Test Deal")
