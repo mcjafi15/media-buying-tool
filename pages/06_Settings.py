@@ -52,7 +52,11 @@ def save_env_file(values: dict):
     content = "\n".join(lines) + "\n"
     tmp = ENV_PATH.with_suffix(".tmp")
     tmp.write_text(content, encoding="utf-8")
-    _os.replace(tmp, ENV_PATH)
+    try:
+        _os.replace(tmp, ENV_PATH)
+    except OSError:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 current = load_env_file()
