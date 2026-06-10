@@ -32,11 +32,16 @@ with st.form("add_placement"):
     add_submitted = st.form_submit_button("Add Placement")
 
 if add_submitted and vendor:
-    is_digital = channel in ("google", "meta", "linkedin")
-    create_placement(deal_id, vendor, channel, description, contracted,
-                     str(start), str(end), is_digital=is_digital)
-    st.success(f"Added: {vendor} ({channel})")
-    st.rerun()
+    if end <= start:
+        st.error("End date must be after start date.")
+    else:
+        is_digital = channel in ("google", "meta", "linkedin")
+        create_placement(deal_id, vendor, channel, description, contracted,
+                         str(start), str(end), is_digital=is_digital)
+        st.success(f"Added: {vendor} ({channel})")
+        st.rerun()
+elif add_submitted:
+    st.error("Vendor / Platform is required.")
 
 st.divider()
 st.subheader("Placements")
@@ -49,7 +54,8 @@ if not placements:
 df = pd.DataFrame(placements)
 display_cols = ["id", "vendor_name", "channel", "description",
                 "contracted_cost", "actual_spend", "status", "start_date", "end_date"]
-st.dataframe(df[display_cols], use_container_width=True, hide_index=True)
+safe_cols = [c for c in display_cols if c in df.columns]
+st.dataframe(df[safe_cols], use_container_width=True, hide_index=True)
 
 total_contracted = df["contracted_cost"].sum()
 total_actual = df["actual_spend"].sum()
@@ -59,16 +65,17 @@ c2.metric("Total Actual Spend", f"${total_actual:,.0f}")
 c3.metric("Remaining", f"${total_contracted - total_actual:,.0f}")
 
 st.subheader("Edit / Delete Placement")
-placement_ids = [p["id"] for p in placements]
 placement_labels = [f"{p['vendor_name']} — {p['channel']} (ID {p['id']})" for p in placements]
+label_to_id = {f"{p['vendor_name']} — {p['channel']} (ID {p['id']})": p["id"] for p in placements}
 selected_label = st.selectbox("Select placement to edit", placement_labels)
-selected_id = placement_ids[placement_labels.index(selected_label)]
+selected_id = label_to_id[selected_label]
 selected = next(p for p in placements if p["id"] == selected_id)
 
 with st.form("edit_placement"):
     new_actual = st.number_input("Actual Spend ($)", value=float(selected["actual_spend"]), step=100.0)
-    new_status = st.selectbox("Status", ["pending", "live", "complete"],
-                               index=["pending", "live", "complete"].index(selected["status"]))
+    _statuses = ["pending", "live", "complete"]
+    _status_idx = _statuses.index(selected["status"]) if selected["status"] in _statuses else 0
+    new_status = st.selectbox("Status", _statuses, index=_status_idx)
     col_save, col_del = st.columns(2)
     save = col_save.form_submit_button("Save Changes")
     delete = col_del.form_submit_button("Delete", type="secondary")
