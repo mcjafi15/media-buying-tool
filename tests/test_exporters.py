@@ -88,3 +88,20 @@ def test_generate_media_plan_summary_contains_budget():
     doc = _load_docx(generate_media_plan_summary(DEAL, PLAN))
     text = _full_text(doc)
     assert "20,000" in text or "20000" in text
+
+
+def test_generate_performance_report_returns_pdf_bytes():
+    from core.exporters import generate_performance_report
+    snapshots = [
+        {"platform": "google", "impressions": 10000, "clicks": 500, "spend": 4500.0,
+         "conversions": 12, "synced_at": "2026-07-15"},
+        {"platform": "meta", "impressions": 8000, "clicks": 300, "spend": 3000.0,
+         "conversions": 8, "synced_at": "2026-07-15"},
+    ]
+    placements = [
+        {"channel": "print", "vendor_name": "Industry Week", "contracted_cost": 5000.0,
+         "actual_spend": 5000.0, "status": "complete"},
+    ]
+    result = generate_performance_report(DEAL, snapshots, placements)
+    assert isinstance(result, bytes)
+    assert result[:4] == b"%PDF"

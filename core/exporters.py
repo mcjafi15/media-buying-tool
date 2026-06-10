@@ -1,5 +1,10 @@
 # core/exporters.py
 from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
@@ -180,3 +185,77 @@ def generate_media_plan_summary(deal: dict, plan: dict) -> bytes:
     if plan.get("keywords"):
         _bold_para(doc, "Keywords", ", ".join(plan["keywords"]))
     return _to_bytes(doc)
+
+
+def generate_performance_report(deal: dict, snapshots: list, placements: list) -> bytes:
+    """Returns a PDF performance report as bytes."""
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=letter,
+                             rightMargin=inch, leftMargin=inch,
+                             topMargin=inch, bottomMargin=inch)
+    styles = getSampleStyleSheet()
+    story = []
+
+    story.append(Paragraph(f"Performance Report — {deal['name']}", styles["Title"]))
+    story.append(Paragraph(
+        f"Location: {deal['location']} | Budget: ${deal['total_budget']:,.0f} | "
+        f"{deal['start_date']} to {deal['end_date']}",
+        styles["Normal"],
+    ))
+    story.append(Spacer(1, 0.2 * inch))
+
+    story.append(Paragraph("Digital Platform Performance", styles["Heading2"]))
+    table_data = [["Platform", "Impressions", "Clicks", "Spend", "Conversions", "CPM", "CPC"]]
+    total_imp = total_clicks = total_spend = total_conv = 0
+    for s in snapshots:
+        imp, clk, spd, conv = s["impressions"], s["clicks"], s["spend"], s["conversions"]
+        cpm = (spd / imp * 1000) if imp else 0
+        cpc = (spd / clk) if clk else 0
+        table_data.append([
+            s["platform"].title(), f"{imp:,}", f"{clk:,}",
+            f"${spd:,.0f}", str(conv), f"${cpm:.2f}", f"${cpc:.2f}",
+        ])
+        total_imp += imp
+        total_clicks += clk
+        total_spend += spd
+        total_conv += conv
+    blend_cpm = (total_spend / total_imp * 1000) if total_imp else 0
+    blend_cpc = (total_spend / total_clicks) if total_clicks else 0
+    table_data.append([
+        "TOTAL", f"{total_imp:,}", f"{total_clicks:,}",
+        f"${total_spend:,.0f}", str(total_conv), f"${blend_cpm:.2f}", f"${blend_cpc:.2f}",
+    ])
+
+    t = Table(table_data, hAlign="LEFT")
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4e79")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#d9e2f3")),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, colors.HexColor("#f5f5f5")]),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 0.2 * inch))
+
+    manual = [p for p in placements if p.get("channel") in ("print", "ooh")]
+    if manual:
+        story.append(Paragraph("Print & OOH Placements", styles["Heading2"]))
+        p_data = [["Vendor", "Channel", "Contracted", "Actual Spend", "Status"]]
+        for p in manual:
+            p_data.append([
+                p["vendor_name"], p["channel"].upper(),
+                f"${p['contracted_cost']:,.0f}", f"${p['actual_spend']:,.0f}", p["status"].title(),
+            ])
+        pt = Table(p_data, hAlign="LEFT")
+        pt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4e79")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ]))
+        story.append(pt)
+
+    doc.build(story)
+    return buf.getvalue()
