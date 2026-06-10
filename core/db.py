@@ -1,8 +1,13 @@
+import os
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "data" / "media_buying.db"
+# Streamlit Cloud mounts source files read-only at /mount/src/ — use /tmp there
+if str(Path(__file__)).startswith("/mount/src"):
+    DB_PATH = Path("/tmp/media_buying.db")
+else:
+    DB_PATH = Path(__file__).parent.parent / "data" / "media_buying.db"
 
 
 @contextmanager
