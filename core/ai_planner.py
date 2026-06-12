@@ -58,4 +58,10 @@ Rules: channel pct values must sum to 100. digital breakdown pct values must sum
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )
-    return json.loads(response.content[0].text)
+    raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```", 2)[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.rsplit("```", 1)[0].strip()
+    return json.loads(raw)
