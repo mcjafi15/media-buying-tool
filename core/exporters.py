@@ -19,7 +19,7 @@ def _new_doc(title: str) -> Document:
 def _bold_para(doc, label: str, value: str):
     p = doc.add_paragraph()
     p.add_run(f"{label}: ").bold = True
-    p.add_run(value)
+    p.add_run(str(value) if value is not None else "")
 
 
 def _deal_overview(doc, deal: dict):
@@ -271,11 +271,11 @@ def generate_creative_brief_doc(deal: dict, plan: dict, creative: dict) -> bytes
     if gs:
         doc.add_heading("Google Search Ads (RSA)", 1)
         doc.add_paragraph("Headlines (30 chars max each):", style="Intense Quote")
-        for i, h in enumerate(gs.get("headlines", []), 1):
-            doc.add_paragraph(f"{i}. {h}", style="List Number")
+        for h in gs.get("headlines", []):
+            doc.add_paragraph(h, style="List Number")
         doc.add_paragraph("Descriptions (90 chars max each):", style="Intense Quote")
-        for i, d in enumerate(gs.get("descriptions", []), 1):
-            doc.add_paragraph(f"{i}. {d}", style="List Number")
+        for d in gs.get("descriptions", []):
+            doc.add_paragraph(d, style="List Number")
         if gs.get("notes"):
             _bold_para(doc, "Notes", gs["notes"])
 
@@ -284,11 +284,11 @@ def generate_creative_brief_doc(deal: dict, plan: dict, creative: dict) -> bytes
     if meta:
         doc.add_heading("Meta (Facebook / Instagram)", 1)
         doc.add_paragraph("Primary Text Options:", style="Intense Quote")
-        for i, t in enumerate(meta.get("primary_text", []), 1):
-            doc.add_paragraph(f"{i}. {t}", style="List Number")
+        for t in meta.get("primary_text", []):
+            doc.add_paragraph(t, style="List Number")
         doc.add_paragraph("Headlines:", style="Intense Quote")
-        for i, h in enumerate(meta.get("headlines", []), 1):
-            doc.add_paragraph(f"{i}. {h}", style="List Number")
+        for h in meta.get("headlines", []):
+            doc.add_paragraph(h, style="List Number")
         _bold_para(doc, "Recommended CTA", meta.get("cta", ""))
         if meta.get("notes"):
             _bold_para(doc, "Notes", meta["notes"])
@@ -298,11 +298,11 @@ def generate_creative_brief_doc(deal: dict, plan: dict, creative: dict) -> bytes
     if li:
         doc.add_heading("LinkedIn Sponsored Content", 1)
         doc.add_paragraph("Headline Options:", style="Intense Quote")
-        for i, h in enumerate(li.get("headline", []), 1):
-            doc.add_paragraph(f"{i}. {h}", style="List Number")
+        for h in li.get("headline", []):
+            doc.add_paragraph(h, style="List Number")
         doc.add_paragraph("Body Copy Options:", style="Intense Quote")
-        for i, b in enumerate(li.get("body", []), 1):
-            doc.add_paragraph(f"{i}. {b}", style="List Number")
+        for b in li.get("body", []):
+            doc.add_paragraph(b, style="List Number")
         if li.get("notes"):
             _bold_para(doc, "Notes", li["notes"])
 
@@ -311,8 +311,8 @@ def generate_creative_brief_doc(deal: dict, plan: dict, creative: dict) -> bytes
     if pr:
         doc.add_heading("Print Advertising", 1)
         doc.add_paragraph("Headline Options:", style="Intense Quote")
-        for i, h in enumerate(pr.get("headlines", []), 1):
-            doc.add_paragraph(f"{i}. {h}", style="List Number")
+        for h in pr.get("headlines", []):
+            doc.add_paragraph(h, style="List Number")
         _bold_para(doc, "Short Body Copy", pr.get("body_short", ""))
         _bold_para(doc, "Long Body Copy", pr.get("body_long", ""))
         _bold_para(doc, "Call to Action", pr.get("cta", ""))
@@ -324,11 +324,11 @@ def generate_creative_brief_doc(deal: dict, plan: dict, creative: dict) -> bytes
     if ooh:
         doc.add_heading("Out-of-Home (Billboards / Signage)", 1)
         doc.add_paragraph("Headline Options (5-7 words max):", style="Intense Quote")
-        for i, h in enumerate(ooh.get("headlines", []), 1):
-            doc.add_paragraph(f"{i}. {h}", style="List Number")
+        for h in ooh.get("headlines", []):
+            doc.add_paragraph(h, style="List Number")
         doc.add_paragraph("Subheadlines:", style="Intense Quote")
-        for i, s in enumerate(ooh.get("subheads", []), 1):
-            doc.add_paragraph(f"{i}. {s}", style="List Number")
+        for s in ooh.get("subheads", []):
+            doc.add_paragraph(s, style="List Number")
         _bold_para(doc, "Call to Action", ooh.get("cta", ""))
         if ooh.get("notes"):
             _bold_para(doc, "Notes", ooh["notes"])
