@@ -25,6 +25,11 @@ def generate_creative_ideas(deal: dict, plan: dict) -> dict:
         Dict with creative ideas keyed by channel: google_search, meta, linkedin,
         print, ooh.
     """
+    required = ("name", "type", "location", "total_budget", "start_date", "end_date")
+    missing = [f for f in required if f not in deal]
+    if missing:
+        raise ValueError(f"Deal is missing required fields: {missing}")
+
     channel_mix = plan.get("channel_mix", {})
     digital = channel_mix.get("digital", {})
     digital_breakdown = digital.get("breakdown", {})
@@ -126,7 +131,11 @@ Rules:
 
     response = _get_client().messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=4096,
+        max_tokens=6000,
         messages=[{"role": "user", "content": prompt}],
     )
-    return json.loads(response.content[0].text)
+    raw = response.content[0].text
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Claude returned invalid JSON: {exc}\nRaw response: {raw[:500]}") from exc
