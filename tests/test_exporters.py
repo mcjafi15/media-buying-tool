@@ -112,3 +112,54 @@ def test_generate_performance_report_empty_data_returns_valid_pdf():
     result = generate_performance_report(DEAL, [], [])
     assert isinstance(result, bytes)
     assert result[:4] == b"%PDF"
+
+
+CREATIVE = {
+    "google_search": {
+        "headlines": [f"Headline {i}" for i in range(1, 16)],
+        "descriptions": ["Desc 1", "Desc 2", "Desc 3", "Desc 4"],
+        "notes": "Target plant managers.",
+    },
+    "meta": {
+        "primary_text": ["Text 1", "Text 2", "Text 3"],
+        "headlines": ["Meta H1", "Meta H2", "Meta H3"],
+        "cta": "Learn More",
+        "notes": "Broad audience.",
+    },
+    "linkedin": {
+        "headline": ["LI H1", "LI H2", "LI H3"],
+        "body": ["LI Body 1", "LI Body 2"],
+        "notes": "Target ops directors.",
+    },
+    "print": {
+        "headlines": ["Print H1", "Print H2", "Print H3"],
+        "body_short": "Short body copy here.",
+        "body_long": "Long body copy here with more detail.",
+        "cta": "Visit us online.",
+        "notes": "Industry Week placement.",
+    },
+    "ooh": {
+        "headlines": ["Big Sale Now", "Auction This Week", "Bid Today Win"],
+        "subheads": ["Chicago July 2026", "Equipment Available"],
+        "cta": "HilcoGlobal.com",
+        "notes": "Near facility.",
+    },
+}
+
+
+def test_generate_creative_brief_doc_returns_bytes():
+    from core.exporters import generate_creative_brief_doc
+    result = generate_creative_brief_doc(DEAL, PLAN, CREATIVE)
+    assert isinstance(result, bytes) and len(result) > 0
+
+
+def test_generate_creative_brief_doc_contains_deal_name_and_channels():
+    from core.exporters import generate_creative_brief_doc
+    doc = _load_docx(generate_creative_brief_doc(DEAL, PLAN, CREATIVE))
+    text = _full_text(doc)
+    assert "Test Liquidation" in text
+    assert "Google" in text
+    assert "Meta" in text
+    assert "LinkedIn" in text or "Sponsored" in text
+    assert "Print" in text
+    assert "Out-of-Home" in text or "Billboard" in text or "OOH" in text or "Signage" in text
